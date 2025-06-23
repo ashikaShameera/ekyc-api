@@ -1,0 +1,20 @@
+ekyc-api/
+│  .env                 # secrets (never commit)
+│  package.json
+│  server.js            # entry-point
+└─ src/
+   ├─ config/
+   │   └─ db.js
+   ├─ routes/
+   │   └─ customerRoutes.js
+   ├─ controllers/
+   │   └─ otpController.js
+   ├─ services/
+   │   ├─ eKYCService.js
+   │   ├─ otpService.js
+   │   └─ tokenService.js
+   ├─ models/
+   │   ├─ ekycRequestModel.js
+   │   └─ otpModel.js
+   └─ utils/
+       └─ generateOtp.js
