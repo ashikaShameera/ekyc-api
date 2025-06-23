@@ -16,3 +16,7 @@ export async function getEmail(idType, idValue, institutionCode) {
     // Optional: Return null or throw error if no match found
     return null;
 }
+
+export async function getEkycUserData(params) {
+    
+}
