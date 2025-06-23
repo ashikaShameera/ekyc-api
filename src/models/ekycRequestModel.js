@@ -1,6 +1,8 @@
 import { getConnection } from '../config/db.js';
 import oracledb from 'oracledb';
 
+import crypto from 'crypto';
+
 export async function insertRequest ({
   idType, idValue, institution, mobile, email, status = 'PEND'
 }) {
@@ -23,12 +25,31 @@ export async function insertRequest ({
   }
 }
 
-export async function updateRequestStatus (reqId, status) {
-  const sql = 'UPDATE BC_EKYC_USER_REQUEST SET STATUS = :status, UPDATED_AT = CURRENT_TIMESTAMP WHERE REQ_ID = :reqId';
+export async function updateRequestStatus(reqId, status) {
+  const dataQueryToken = crypto.randomUUID(); // or use any unique token generation logic
+
+  const sql = `
+    UPDATE BC_EKYC_USER_REQUEST
+    SET STATUS = :status,
+        DATA_QUERY_TOKEN = :dataQueryToken,
+        UPDATED_AT = CURRENT_TIMESTAMP
+    WHERE REQ_ID = :reqId
+    RETURNING DATA_QUERY_TOKEN INTO :returnedToken
+  `;
+
+  const binds = {
+    status,
+    dataQueryToken,
+    reqId,
+    returnedToken: { dir: oracledb.BIND_OUT, type: oracledb.STRING }
+  };
+
   const conn = await getConnection();
+
   try {
-    await conn.execute(sql, { status, reqId });
+    const result = await conn.execute(sql, binds);
     await conn.commit();
+    return result.outBinds.returnedToken[0]; // ✅ return the new token
   } finally {
     await conn.close();
   }

@@ -33,14 +33,14 @@ export async function requestOtp ({ idType, idValue, institutionCode, email, mob
  */
 export async function verifyOtp ({ tokenPayload, otp }) {
   const { reqId } = tokenPayload;
-
+  
   // fetch matching OTP row
   const otpRowId = await findActiveOtp(reqId, otp);
   if (!otpRowId) return false;
 
   // mark OTP + REQUEST as verified
   await markOtpVerified(otpRowId);
-  await updateRequestStatus(reqId, 'VERIFY');
+  const DATA_QUERY_TOKEN=await updateRequestStatus(reqId, 'VERIFY');
 
-  return true;
+  return DATA_QUERY_TOKEN;
 }

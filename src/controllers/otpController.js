@@ -62,15 +62,15 @@ export async function handleVerifyOtp (req, res) {
   console.log(token)
   try {
     const payload = verifyToken(token);
-    const ok = await verifyOtp({ tokenPayload: payload, otp });
-    if (!ok) {
+    const DATA_QUERY_TOKEN = await verifyOtp({ tokenPayload: payload, otp });
+    if (!DATA_QUERY_TOKEN) {
       return res.status(400).json({ status: 'FAIL', message: 'Invalid OTP', content: null });
     }
 
       return res.status(200).json({
     status: 'SUCCESS',
     message: 'OTP verified',
-    content: { reqId: payload.reqId }
+    content: { data_query_token: DATA_QUERY_TOKEN }
   });
   } catch (err) {
     console.error(err);
