@@ -11,6 +11,7 @@ export async function requestOtp ({ idType, idValue, institutionCode, email, mob
 
   // 2.  generate & store OTP
   const otp = generateNumericOtp(6);
+  console.log(typeof(otp))
   await insertOtp({ reqId, otp });              // STATUS = 'SEND'
   console.log("opt =",otp)
   // 3.  mark request as 'SEND'

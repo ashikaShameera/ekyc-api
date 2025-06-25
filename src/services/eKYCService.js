@@ -107,6 +107,17 @@ export async function getEkycUserData(idType, idNumber, institution) {
     // https://kyc.bethel.network/api/v1/kyc-full/955070078v/nic/{{x-username}}
     // // go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
 
+export async function getEkycDocument(cid) {
+    console.log("called the getEkycDocument in the bethel ")
+    console.log(cid)
+    // Todo
+    // Todo
+    // Todo
+    // Todo
+
+
+}    
+
 export async function createEkycUserData(ekycUserData) {
     console.log("called createEkycUserData")
     console.log(ekycUserData)

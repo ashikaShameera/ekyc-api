@@ -1,5 +1,5 @@
 import { loginAgent, fetchEkycUser } from '../services/agentService.js';
-import { getEkycUserData,createEkycUserData  } from '../services/eKYCService.js';
+import { getEkycUserData,createEkycUserData,getEkycDocument  } from '../services/eKYCService.js';
 import { findByDataQueryToken } from '../models/ekycRequestModel.js';
 
 
@@ -78,6 +78,44 @@ export async function handleGetEkycUser (req, res) {
       status : 'SUCCESS',
       message: 'Data retrieved',
       content: data,               // might be null/empty – depends on the service
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status : 'ERROR',
+      message: 'Internal server error',
+      content: null,
+    });
+  }
+}
+
+
+export async function handleGetDocument (req, res) {
+  const { cid } = req.body || {};
+
+  if (!cid) {
+    return res.status(400).json({
+      status : 'BAD_REQUEST',
+      message: 'cid is required',
+      content: null,
+    });
+  }
+
+  try {
+    const docData = await getEkycDocument(cid);   // ← call the service-layer helper
+
+    if (!docData) {
+      return res.status(404).json({
+        status : 'NOT_FOUND',
+        message: 'Document not found',
+        content: null,
+      });
+    }
+
+    return res.status(200).json({
+      status : 'SUCCESS',
+      message: 'Document retrieved',
+      content: docData,          // whatever the service returns
     });
   } catch (err) {
     console.error(err);
