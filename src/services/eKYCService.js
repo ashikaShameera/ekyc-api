@@ -104,19 +104,48 @@ export async function getEkycUserData(idType, idNumber, institution) {
   }
 }
 
+
+
+export async function getEkycDocument(idType, idValue, cid) {
+  // 1) first try with cached token
+  let token = await getAccessToken();
+  try {
+    return await fetchDocumentDetails(token, idType, idValue, cid);
+  } catch (err) {
+    if (!isTokenError(err)) {
+      console.error('getEkycDocument error:', err.response?.data || err.message);
+      return null;
+    }
+  }
+
+  // 2) token invalid/expired → hard refresh & retry once
+  try {
+    const fresh = await performLogin();      // refresh + persist
+    token = fresh.access_token;
+    return await fetchDocumentDetails(token, idType, idValue, cid);
+  } catch (err) {
+    console.error('getEkycDocument after refresh error:', err.response?.data || err.message);
+    return null;
+  }
+}
+
+
+async function fetchDocumentDetails(token, idType, idValue, cid) {
+  const url = `${BASE_URL}ekyc/documents/${idValue}/${idType.toLowerCase()}/${KYC_USERNAME}/${cid}`;
+
+  const { data } = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 8000,
+  });
+
+  return data;          // entire document payload
+}
+
+// https://kyc.bethel.network/api/v1/ekyc/documents/{{id}}/{{id_type}}/{{username}}/{{cid}}
+// https://kyc.bethel.network/api/v1/ekyc/documents/{id}/{id_type}/{username}/{cid}
     // https://kyc.bethel.network/api/v1/kyc-full/955070078v/nic/{{x-username}}
     // // go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
 
-export async function getEkycDocument(cid) {
-    console.log("called the getEkycDocument in the bethel ")
-    console.log(cid)
-    // Todo
-    // Todo
-    // Todo
-    // Todo
-
-
-}    
 
 export async function createEkycUserData(ekycUserData) {
     console.log("called createEkycUserData")

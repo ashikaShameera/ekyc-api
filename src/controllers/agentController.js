@@ -90,21 +90,22 @@ export async function handleGetEkycUser (req, res) {
 }
 
 
-export async function handleGetDocument (req, res) {
-  const { cid } = req.body || {};
 
-  if (!cid) {
+export async function handleGetDocument (req, res) {
+  const {idType,idValue, cid } = req.body || {};
+
+  if (!cid |!idValue| !idType) {
     return res.status(400).json({
       status : 'BAD_REQUEST',
-      message: 'cid is required',
+      message: 'cid, idValue, and idType are required',
       content: null,
     });
   }
 
   try {
-    const docData = await getEkycDocument(cid);   // ← call the service-layer helper
+    const docData = await getEkycDocument(idType,idValue, cid);   // ← call the service-layer helper
 
-    if (!docData) {
+    if (!docData ) {
       return res.status(404).json({
         status : 'NOT_FOUND',
         message: 'Document not found',
