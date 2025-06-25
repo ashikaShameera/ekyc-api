@@ -1,9 +1,10 @@
 import { getEmail } from '../services/eKYCService.js';
 import { requestOtp, verifyOtp } from '../services/otpService.js';
 import { verifyToken } from '../services/tokenService.js';
+import { maskEmail } from '../utils/common.js';
 
 export async function handleRequestOtp (req, res) {
-  const { idType, idValue, institutionCode } = req.body || {};
+  let { idType, idValue, institutionCode } = req.body || {};
   if (!idType || !idValue || !institutionCode) {
     return res.status(400).json({
       status  : 'BAD_REQUEST',
@@ -21,11 +22,11 @@ export async function handleRequestOtp (req, res) {
         content : null,
       });
     }
-
+    idType = (idType || '').trim().toUpperCase();
     const { token, otpLength } = await requestOtp({
       idType, idValue, institutionCode, ...user,
     });
-
+    // console.log(user.email)
     return res.status(200).json({
       status  : 'SUCCESS',
       message : 'OTP sent',
@@ -33,6 +34,7 @@ export async function handleRequestOtp (req, res) {
         token,
         length   : otpLength,
         time_out : Number(process.env.OTP_TTL_SECONDS || 300),
+        masked_email:maskEmail(user.email)
       },
     });
   } catch (err) {

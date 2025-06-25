@@ -6,6 +6,7 @@ import crypto from 'crypto';
 export async function insertRequest ({
   idType, idValue, institution, mobile, email, status = 'PEND'
 }) {
+  console.log("called insert request aql")
   const sql = `
     INSERT INTO BC_EKYC_USER_REQUEST (
       ID_TYPE, ID_NUMBER, INSTITUTION,
@@ -50,6 +51,34 @@ export async function updateRequestStatus(reqId, status) {
     const result = await conn.execute(sql, binds);
     await conn.commit();
     return result.outBinds.returnedToken[0]; // ✅ return the new token
+  } finally {
+    await conn.close();
+  }
+}
+
+
+export async function findByDataQueryToken (token) {
+  const sql = `
+    SELECT ID_TYPE, ID_NUMBER, INSTITUTION
+      FROM BC_EKYC_USER_REQUEST
+     WHERE DATA_QUERY_TOKEN = :token
+  `;
+
+  const conn = await getConnection();
+  try {
+    const res = await conn.execute(
+      sql,
+      { token },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+    if (!res.rows.length) return null;
+
+    const row = res.rows[0];              // {ID_TYPE, ID_NUMBER, INSTITUTION}
+    return {
+      idType     : row.ID_TYPE,
+      idNumber   : row.ID_NUMBER,
+      institution: row.INSTITUTION,
+    };
   } finally {
     await conn.close();
   }

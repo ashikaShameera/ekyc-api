@@ -1,4 +1,7 @@
 import { loginAgent, fetchEkycUser } from '../services/agentService.js';
+import { getEkycUserData,createEkycUserData  } from '../services/eKYCService.js';
+import { findByDataQueryToken } from '../models/ekycRequestModel.js';
+
 
 // ---------- /institution-agent/login ----------
 export async function handleAgentLogin (req, res) {
@@ -40,31 +43,78 @@ export async function handleAgentLogin (req, res) {
 
 // ---------- /get-ekyc-user ----------
 export async function handleGetEkycUser (req, res) {
-  const { token: jwt, data_query_token } = req.body || {};
+  const { data_query_token } = req.body || {};
 
-  if (!jwt || !data_query_token) {
+  if (!data_query_token) {
     return res.status(400).json({
       status : 'BAD_REQUEST',
-      message: 'token & data_query_token are required',
+      message: 'data_query_token is required',
       content: null,
     });
   }
-
+  console.log("handle data")
   try {
-    const data = await fetchEkycUser({ jwt, dataQueryToken: data_query_token });
 
-    if (!data) {
-      return res.status(401).json({
-        status : 'FAIL',
-        message: 'Token invalid, expired or agent inactive',
-        content: null,
-      });
+    const meta = await findByDataQueryToken(data_query_token);
+
+    if (!meta) {
+        return res.status(404).json({
+            status : 'NOT_FOUND',
+            message: 'Invalid data_query_token',
+            content: null,
+        });
     }
+    /// go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
+    // here need to pass the ID_TYPE,ID_NUMBER,ID_NUMBER,INSTITUTION
 
+    // put user request with new column
+    const data = await getEkycUserData(meta.idType, meta.idNumber, meta.institution);
+
+    
+
+    console.log(data_query_token)
+    // update user request with new column status of new column
     return res.status(200).json({
       status : 'SUCCESS',
       message: 'Data retrieved',
-      content: data,
+      content: data,               // might be null/empty – depends on the service
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status : 'ERROR',
+      message: 'Internal server error',
+      content: null,
+    });
+  }
+}
+
+
+/* ---------- /create-ekyc ---------- */
+export async function handleCreateEkyc (req, res) {
+  // console.log(req)
+  // const { firstName, lastName, nic, documents } = req.body || {};
+  const body=req.body || {};
+  // console.log("request is",req)
+  // if (
+  //   !firstName || !lastName || !nic ||
+  //   !documents?.nic_front || !documents?.nic_back
+  // ) {
+  //   return res.status(400).json({
+  //     status : 'BAD_REQUEST',
+  //     message: 'firstName, lastName, nic and both NIC images are required',
+  //     content: null,
+  //   });
+  // }
+
+  try {
+    // here batter to pass req body
+    const resp = await createEkycUserData(body);
+
+    return res.status(200).json({
+      status : 'SUCCESS',
+      message: resp?.message || 'KYC record created Successful',
+      content: null,
     });
   } catch (err) {
     console.error(err);
