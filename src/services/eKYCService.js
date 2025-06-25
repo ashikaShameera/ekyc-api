@@ -65,14 +65,44 @@ export async function getEmail(idType, idValue, institutionCode) {
   }
 }
 
-export async function getEkycUserData(idType, idNumber, institution) {
 
 
+async function fetchFullKycDetails(token, idType, idNumber) {
+  const url = `${BASE_URL}kyc-full/${idNumber}/${idType.toLowerCase()}/${KYC_USERNAME}`;
 
-    console.log("called getEkycUser with token",idType, idNumber, institution)
-    return {"ss":"sssss"}
+  const { data } = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 8000,
+  });
+
+  return data;          // return the whole payload; caller decides what to send on
 }
 
+
+
+
+export async function getEkycUserData(idType, idNumber, institution) {
+  // 1) use cached token first
+  let token = await getAccessToken();
+  try {
+    return await fetchFullKycDetails(token, idType, idNumber);
+  } catch (err) {
+    if (!isTokenError(err)) {
+      console.error('getEkycUserData error:', err.response?.data || err.message);
+      return null;
+    }
+  }
+
+  // 2) token expired/invalid → hard refresh & retry once
+  try {
+    const fresh = await performLogin();      // refresh + persist
+    token = fresh.access_token;
+    return await fetchFullKycDetails(token, idType, idNumber);
+  } catch (err) {
+    console.error('getEkycUserData after refresh error:', err.response?.data || err.message);
+    return null;
+  }
+}
 
     // https://kyc.bethel.network/api/v1/kyc-full/955070078v/nic/{{x-username}}
     // // go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
