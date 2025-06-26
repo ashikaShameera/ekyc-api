@@ -1,7 +1,9 @@
 import { loginAgent, fetchEkycUser } from '../services/agentService.js';
 import { getEkycUserData,createEkycUserData,getEkycDocument  } from '../services/eKYCService.js';
 import { findByDataQueryToken } from '../models/ekycRequestModel.js';
-
+import {
+  getExternalReferenceByInternal
+} from '../models/institutionAgentModel.js';
 
 // ---------- /institution-agent/login ----------
 export async function handleAgentLogin (req, res) {
@@ -130,35 +132,40 @@ export async function handleGetDocument (req, res) {
 
 
 /* ---------- /create-ekyc ---------- */
-export async function handleCreateEkyc (req, res) {
-  // console.log(req)
-  // const { firstName, lastName, nic, documents } = req.body || {};
-  const body=req.body || {};
-  // console.log("request is",req)
-  // if (
-  //   !firstName || !lastName || !nic ||
-  //   !documents?.nic_front || !documents?.nic_back
-  // ) {
-  //   return res.status(400).json({
-  //     status : 'BAD_REQUEST',
-  //     message: 'firstName, lastName, nic and both NIC images are required',
-  //     content: null,
-  //   });
-  // }
+export async function handleCreateEkyc(req, res) {
+  let body = req.body || {};
+  // console.log("called create ekyc", body);
+  console.log("organization_id:", body.organization_id);
+  console.log("username:", body.username);
 
   try {
-    // here batter to pass req body
-    const resp = await createEkycUserData(body);
+    // Step 1: Lookup external reference
+    let externalRef = await getExternalReferenceByInternal(body.organization_id);
+    externalRef = externalRef.toLowerCase();
+    console.log(externalRef)
+    // Step 2: If not found, return 400 error
+    if (!externalRef) {
+      return res.status(400).json({
+        status: 'BAD_REQUEST',
+        message: 'Organization not found',
+        content: null,
+      });
+    }
 
+    // Step 3: Replace internal with external reference
+    body.organization_id = externalRef;
+    // Step 4: Proceed with creation
+    const resp = await createEkycUserData(body);
+    // need to handle below this accordinlly to getting respones
     return res.status(200).json({
-      status : 'SUCCESS',
+      status: 'SUCCESS',
       message: resp?.message || 'KYC record created Successful',
       content: null,
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      status : 'ERROR',
+      status: 'ERROR',
       message: 'Internal server error',
       content: null,
     });

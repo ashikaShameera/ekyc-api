@@ -149,7 +149,7 @@ async function fetchDocumentDetails(token, idType, idValue, cid) {
 
 export async function createEkycUserData(ekycUserData) {
     console.log("called createEkycUserData")
+    console.log(ekycUserData.organization_id)
     console.log(ekycUserData)
-
     return ("creatin suceess")
 }
