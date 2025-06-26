@@ -1,10 +1,10 @@
 import { loginAgent, fetchEkycUser } from '../services/agentService.js';
-import { getEkycUserData,createEkycUserData,getEkycDocument  } from '../services/eKYCService.js';
+import { getEkycUserData,createEkycUserData,getEkycDocument,createEkycDocument  } from '../services/eKYCService.js';
 import { findByDataQueryToken } from '../models/ekycRequestModel.js';
 import {
   getExternalReferenceByInternal
 } from '../models/institutionAgentModel.js';
-
+ 
 // ---------- /institution-agent/login ----------
 export async function handleAgentLogin (req, res) {
   const { username, password, institution } = req.body || {};
@@ -171,3 +171,117 @@ export async function handleCreateEkyc(req, res) {
     });
   }
 }
+
+
+export async function handleCreateDocument (req, res) {
+  try {
+    /* ---------- validate required text fields ---------- */
+    const { username_employee, organization_id } = req.body;
+
+    if (!username_employee || !organization_id) {
+      return res.status(400).json({
+        status : 'BAD_REQUEST',
+        message: 'username_employee and organization_id are required',
+        content: null,
+      });
+    }
+
+    /* ---------- mutate req.body *in-place* ---------- */
+    // 1. Title-case the username
+    req.body.username_employee = username_employee
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase());
+
+    // 2. map internal → external org-id
+    const orgExternal = await getExternalReferenceByInternal(organization_id);
+    if (!orgExternal) {
+      return res.status(404).json({
+        status : 'NOT_FOUND',
+        message: 'organization_id is invalid',
+        content: null,
+      });
+    }
+    req.body.organization_id = orgExternal.toLowerCase();
+
+    /* ---------- delegate, passing the *whole* request object ---------- */
+    const resp = await createEkycDocument(req);   // req now carries updated body + any files
+
+    return res.status(200).json({
+      status : 'SUCCESS',
+      message: resp?.message || 'Document created',
+      content: null,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status : 'ERROR',
+      message: 'Internal server error',
+      content: err.message || err,
+    });
+  }
+}
+
+
+
+
+// export async function handleCreateDocument (req, res) {
+//   try {
+//     // body fields come via multer (upload.none()) – strings only
+//     console.log(req)
+//     // console.log(req.body)
+//     // console.log(req.files)
+//     let {
+//       username_employee,
+//       organization_id,
+//       ...rest
+//     } = req.body;
+
+//     if (!username_employee || !organization_id) {
+//       return res.status(400).json({
+//         status : 'BAD_REQUEST',
+//         message: 'username_employee and organization_id are required',
+//         content: null,
+//       });
+//     }
+
+//     // 1) transform username_employee (example: Title-case)
+//     username_employee = username_employee
+//       .toLowerCase()
+//       .replace(/\b\w/g, (c) => c.toUpperCase());
+
+    
+//     // 2) convert organization_id (internal → external)
+//     let orgExternal = await getExternalReferenceByInternal(organization_id);
+//     if (!orgExternal) {
+//       return res.status(404).json({
+//         status : 'NOT_FOUND',
+//         message: 'organization_id is invalid',
+//         content: null,
+//       });
+//     }
+//     orgExternal =orgExternal.toLowerCase()
+
+//     // 3) assemble final payload
+//     const payload = {
+//       ...rest,             // any other form fields
+//       username_employee : username_employee,
+//       organization_id: orgExternal,
+//     };
+
+//     // 4) delegate to service layer
+//     const resp = await createEkycDocument(payload);
+
+//     return res.status(200).json({
+//       status : 'SUCCESS',
+//       message: resp?.message || 'Document created',
+//       content: null,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({
+//       status : 'ERROR',
+//       message: 'Internal server error',
+//       content: err,
+//     });
+//   }
+// }

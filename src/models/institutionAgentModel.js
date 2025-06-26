@@ -55,7 +55,7 @@ export async function getExternalReferenceByInternal(organizationId) {
   const sql = `
     SELECT REFRENCE_NUMBER_EXTERNAL
     FROM BC_INSTITUTION
-    WHERE REFRENCE_NUMBER_INTERNAL = :organizationId
+    WHERE CODE = :organizationId
   `;
 
   const conn = await getConnection();

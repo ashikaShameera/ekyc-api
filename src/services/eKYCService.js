@@ -153,3 +153,9 @@ export async function createEkycUserData(ekycUserData) {
     console.log(ekycUserData)
     return ("creatin suceess")
 }
+
+
+export async function createEkycDocument(req) {
+  req.body.username_employee=KYC_USERNAME
+  console.log("ekyc documents",req)
+}

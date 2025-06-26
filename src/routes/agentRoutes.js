@@ -4,8 +4,12 @@ import {
   handleAgentLogin,
   handleGetEkycUser,
   handleCreateEkyc,
-  handleGetDocument
+  handleGetDocument,
+  handleCreateDocument
 } from '../controllers/agentController.js';
+
+import multer from 'multer';
+const upload = multer()
 
 export const agentRouter = express.Router();
 
@@ -14,3 +18,9 @@ agentRouter.post('/get-ekyc-user',agentAuth, handleGetEkycUser);
 agentRouter.post('/get-document',  agentAuth, handleGetDocument); 
 agentRouter.post('/create-ekyc',   agentAuth, handleCreateEkyc);
 
+agentRouter.post(
+  '/create-document',
+  agentAuth,
+  upload.any(),                // we only need form fields, no disk storage
+  handleCreateDocument,
+);
