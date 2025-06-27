@@ -3,6 +3,9 @@ import { getAccessToken, performLogin} from './kycAuthService.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
 
+import FormData from 'form-data';  // npm install form-data to handle form-data requests
+import fs from 'fs';
+
 
 const BASE_URL      = 'https://kyc.bethel.network/api/v1/';
 const { KYC_USERNAME = 'privilegedUser4' } = process.env;
@@ -146,22 +149,6 @@ async function fetchDocumentDetails(token, idType, idValue, cid) {
   return data;          // entire document payload
 }
 
-// https://kyc.bethel.network/api/v1/ekyc/documents/{{id}}/{{id_type}}/{{username}}/{{cid}}
-// https://kyc.bethel.network/api/v1/ekyc/documents/{id}/{id_type}/{username}/{cid}
-    // https://kyc.bethel.network/api/v1/kyc-full/955070078v/nic/{{x-username}}
-    // // go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
-
-
-// export async function createEkycUserData(ekycUserData) {
-//   ekycUserData.username=KYC_USERNAME
-//     console.log("called createEkycUserData")
-//     console.log(ekycUserData.organization_id)
-//     console.log(ekycUserData.username)
-
-//     console.log(ekycUserData)
-//     return ("creatin suceess")
-// }
-
 
 /*──────────────── helper – POST  create-update ───────────────*/
 async function postCreateOrUpdate(token, ekycUserData) {
@@ -176,7 +163,7 @@ async function postCreateOrUpdate(token, ekycUserData) {
 }
 
 /*──────────────── MAIN – createEkycUserData ──────────────────*/
-export async function createEkycUserData(ekycUserData) {
+export async function createEkycUserData(ekycUserData,externalRef) {
   // 1) first try with cached token
   let token = await getAccessToken();
   try {
@@ -202,11 +189,69 @@ export async function createEkycUserData(ekycUserData) {
 
 
 
+// export async function createEkycDocument(req) {
+//   req.body.username_employee=KYC_USERNAME
+//   console.log("ekyc documents",req.files)
+//   console.log("ekyc documents",req.body)
+// }
 
 
 export async function createEkycDocument(req) {
-  req.body.username_employee=KYC_USERNAME
-  console.log("ekyc documents",req)
+  console.log(req.body.id_type)
+  try {
+    // 1) Get the token for authorization header
+    let token = await getAccessToken();
+    console.log(req.body.username_employee)
+    // 2) Create the form-data object
+    const form = new FormData();
+    form.append('id', req.body.id);                  // id (e.g., NIC number)
+    form.append('id_type', req.body.id_type);        // id_type (e.g., NIC)
+    form.append('username_employee', KYC_USERNAME); // employee username
+    form.append('organization_id', req.body.organization_id);     // external organization id
+    
+    // 3) Attach files if any (assuming params.files is an object with file paths or buffers)
+    if (req.files) {
+      // Assuming params.files contains 'nicFront' (file)
+      for (const [fileKey, file] of Object.entries(req.files)) {
+        form.append(fileKey, file.buffer || file.path, { filename: file.originalname });
+      }
+    }
+
+    // 4) Make the POST request to the Bethel API with Authorization and form-data
+    const response = await axios.post(
+      'https://kyc.bethel.network/api/v1/upload-update/documents',
+      form,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...form.getHeaders(), // Automatically sets the correct 'Content-Type' for form-data
+        },
+        timeout: HTTP_TIMEOUT,  // Use the HTTP_TIMEOUT set in the environment file
+      }
+    );
+
+    // 5) Return response from API (success or failure message)
+    console.log("respone is",response.data);  // Check the response if needed
+    return response.data;        // Return data (you may modify how to handle this)
+  } catch (err) {
+    console.error('Error in createEkycDocument:', err.response?.data || err.message);
+    return null; // Or you can return an error message as needed
+  }
 }
 
+// https://kyc.bethel.network/api/v1/ekyc/documents/{{id}}/{{id_type}}/{{username}}/{{cid}}
+// https://kyc.bethel.network/api/v1/ekyc/documents/{id}/{id_type}/{username}/{cid}
+    // https://kyc.bethel.network/api/v1/kyc-full/955070078v/nic/{{x-username}}
+    // // go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
+
+
+// export async function createEkycUserData(ekycUserData) {
+//   ekycUserData.username=KYC_USERNAME
+//     console.log("called createEkycUserData")
+//     console.log(ekycUserData.organization_id)
+//     console.log(ekycUserData.username)
+
+//     console.log(ekycUserData)
+//     return ("creatin suceess")
+// }
 

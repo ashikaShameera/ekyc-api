@@ -155,7 +155,7 @@ export async function handleCreateEkyc(req, res) {
     // Step 3: Replace internal with external reference
     body.organization_id = externalRef;
     // Step 4: Proceed with creation
-    const resp = await createEkycUserData(body);
+    const resp = await createEkycUserData(body,externalRef);
     // need to handle below this accordinlly to getting respones
     return res.status(200).json({
       status: 'SUCCESS',
@@ -206,9 +206,18 @@ export async function handleCreateDocument (req, res) {
     /* ---------- delegate, passing the *whole* request object ---------- */
     const resp = await createEkycDocument(req);   // req now carries updated body + any files
 
+    // Check if response contains an error or a failure message
+    if (!resp || resp?.message !== 'success') {
+      return res.status(400).json({
+        status : 'FAIL',
+        message: 'Document not created',
+        content: null,
+      });
+    }
+
     return res.status(200).json({
       status : 'SUCCESS',
-      message: resp?.message || 'Document created',
+      message: resp?.message || 'Document created successfully',
       content: null,
     });
   } catch (err) {
@@ -220,6 +229,54 @@ export async function handleCreateDocument (req, res) {
     });
   }
 }
+
+// export async function handleCreateDocument (req, res) {
+//   try {
+//     /* ---------- validate required text fields ---------- */
+//     const { username_employee, organization_id } = req.body;
+
+//     if (!username_employee || !organization_id) {
+//       return res.status(400).json({
+//         status : 'BAD_REQUEST',
+//         message: 'username_employee and organization_id are required',
+//         content: null,
+//       });
+//     }
+
+//     /* ---------- mutate req.body *in-place* ---------- */
+//     // 1. Title-case the username
+//     req.body.username_employee = username_employee
+//       .toLowerCase()
+//       .replace(/\b\w/g, c => c.toUpperCase());
+
+//     // 2. map internal → external org-id
+//     const orgExternal = await getExternalReferenceByInternal(organization_id);
+//     if (!orgExternal) {
+//       return res.status(404).json({
+//         status : 'NOT_FOUND',
+//         message: 'organization_id is invalid',
+//         content: null,
+//       });
+//     }
+//     req.body.organization_id = orgExternal.toLowerCase();
+
+//     /* ---------- delegate, passing the *whole* request object ---------- */
+//     const resp = await createEkycDocument(req);   // req now carries updated body + any files
+
+//     return res.status(200).json({
+//       status : 'SUCCESS',
+//       message: resp?.message || 'Document created',
+//       content: null,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({
+//       status : 'ERROR',
+//       message: 'Internal server error',
+//       content: err.message || err,
+//     });
+//   }
+// }
 
 
 
