@@ -214,6 +214,7 @@ export async function createEkycDocument(req) {
     if (req.files) {
       // Assuming params.files contains 'nicFront' (file)
       for (const [fileKey, file] of Object.entries(req.files)) {
+        console.log("hiiiiiii")
         console.log("==========================================================")
         console.log(file)
         form.append(file.fieldname, file.buffer,file.originalname);
