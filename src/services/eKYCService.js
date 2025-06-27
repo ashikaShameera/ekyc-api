@@ -197,6 +197,7 @@ export async function createEkycUserData(ekycUserData,externalRef) {
 
 
 export async function createEkycDocument(req) {
+  // console.log(req.files)
   console.log(req.body.id_type)
   try {
     // 1) Get the token for authorization header
@@ -213,9 +214,13 @@ export async function createEkycDocument(req) {
     if (req.files) {
       // Assuming params.files contains 'nicFront' (file)
       for (const [fileKey, file] of Object.entries(req.files)) {
-        form.append(fileKey, file.buffer || file.path, { filename: file.originalname });
+        console.log("==========================================================")
+        console.log(file)
+        form.append(file.fieldname, file.buffer,file.originalname);
+        // form.append(file);
       }
     }
+    console.log(form)
 
     // 4) Make the POST request to the Bethel API with Authorization and form-data
     const response = await axios.post(

@@ -207,7 +207,7 @@ export async function handleCreateDocument (req, res) {
     const resp = await createEkycDocument(req);   // req now carries updated body + any files
 
     // Check if response contains an error or a failure message
-    if (!resp || resp?.message !== 'success') {
+    if (!resp || resp?.message !== 'Static document fields set successfully') {
       return res.status(400).json({
         status : 'FAIL',
         message: 'Document not created',
