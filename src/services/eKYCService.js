@@ -6,8 +6,7 @@ import dotenv from 'dotenv';
 
 const BASE_URL      = 'https://kyc.bethel.network/api/v1/';
 const { KYC_USERNAME = 'privilegedUser4' } = process.env;
-
-
+const HTTP_TIMEOUT =Number(process.env.KYC_HTTP_TIMEOUT_MS); 
 
 async function fetchContactDetails(token, idType, idValue) {
   const url = `${BASE_URL}contact-details-user-kyc`;
@@ -68,13 +67,19 @@ export async function getEmail(idType, idValue, institutionCode) {
 
 
 async function fetchFullKycDetails(token, idType, idNumber) {
-  const url = `${BASE_URL}kyc-full/${idNumber}/${idType.toLowerCase()}/${KYC_USERNAME}`;
 
-  const { data } = await axios.get(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    timeout: 8000,
+  
+  const url = `${BASE_URL}get/kyc/full/${idNumber}/${idType.toLowerCase()}/boc1/${KYC_USERNAME}`;
+  console.log(url)
+
+ const { data } = await axios.get(url, {
+    headers: {
+      Authorization : `Bearer ${token}`,
+      // 'Content-Type': 'application/json',
+    },
+    timeout: HTTP_TIMEOUT,        // ← now driven by .env
   });
-
+  console.log("response data is ",data)
   return data;          // return the whole payload; caller decides what to send on
 }
 
@@ -147,15 +152,61 @@ async function fetchDocumentDetails(token, idType, idValue, cid) {
     // // go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
 
 
-export async function createEkycUserData(ekycUserData) {
-    console.log("called createEkycUserData")
-    console.log(ekycUserData.organization_id)
-    console.log(ekycUserData)
-    return ("creatin suceess")
+// export async function createEkycUserData(ekycUserData) {
+//   ekycUserData.username=KYC_USERNAME
+//     console.log("called createEkycUserData")
+//     console.log(ekycUserData.organization_id)
+//     console.log(ekycUserData.username)
+
+//     console.log(ekycUserData)
+//     return ("creatin suceess")
+// }
+
+
+/*──────────────── helper – POST  create-update ───────────────*/
+async function postCreateOrUpdate(token, ekycUserData) {
+  const url  = `${BASE_URL}create-update`;
+  const body = { ...ekycUserData, username: KYC_USERNAME };
+
+  const { data } = await axios.post(url, body, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    timeout: HTTP_TIMEOUT,                          // ← now honour .env
+  });
+  return data;
 }
+
+/*──────────────── MAIN – createEkycUserData ──────────────────*/
+export async function createEkycUserData(ekycUserData) {
+  // 1) first try with cached token
+  let token = await getAccessToken();
+  try {
+    return await postCreateOrUpdate(token, ekycUserData);
+  } catch (err) {
+    if (!isTokenError(err)) {
+      console.error('createEkycUserData error:', err.response?.data || err.message);
+      return null;
+    }
+  }
+
+  // 2) token invalid/expired → hard refresh & retry once
+  try {
+    const fresh = await performLogin();      // refresh + persist
+    token = fresh.access_token;
+    return await postCreateOrUpdate(token, ekycUserData);
+  } catch (err) {
+    console.error('createEkycUserData after refresh error:', err.response?.data || err.message);
+    return null;
+  }
+}
+
+
+
+
 
 
 export async function createEkycDocument(req) {
   req.body.username_employee=KYC_USERNAME
   console.log("ekyc documents",req)
 }
+
+
