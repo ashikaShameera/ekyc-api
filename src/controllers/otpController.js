@@ -16,7 +16,7 @@ export async function handleRequestOtp (req, res) {
   try {
     const user = await getEmail(idType, idValue, institutionCode);
     if (!user) {
-      return res.status(404).json({
+      return res.status(200).json({
         status  : 'NOT_FOUND',
         message : 'No matching user',
         content : null,

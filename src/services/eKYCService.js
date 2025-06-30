@@ -68,10 +68,11 @@ export async function getEmail(idType, idValue, institutionCode) {
 
 
 
-async function fetchFullKycDetails(token, idType, idNumber) {
+async function fetchFullKycDetails(token, idType, idNumber,institution) {
+  // console.log("------------institution------------ ",institution)
+  const url = `${BASE_URL}get/kyc/full/${idNumber}/${idType.toLowerCase()}/${institution}/${KYC_USERNAME}`;
 
-  
-  const url = `${BASE_URL}get/kyc/full/${idNumber}/${idType.toLowerCase()}/boc1/${KYC_USERNAME}`;
+  // const url = `${BASE_URL}get/kyc/full/${idNumber}/${idType.toLowerCase()}/boc1/${KYC_USERNAME}`;
   console.log(url)
 
  const { data } = await axios.get(url, {
@@ -89,10 +90,11 @@ async function fetchFullKycDetails(token, idType, idNumber) {
 
 
 export async function getEkycUserData(idType, idNumber, institution) {
+
   // 1) use cached token first
   let token = await getAccessToken();
   try {
-    return await fetchFullKycDetails(token, idType, idNumber);
+    return await fetchFullKycDetails(token, idType, idNumber,institution);
   } catch (err) {
     if (!isTokenError(err)) {
       console.error('getEkycUserData error:', err.response?.data || err.message);

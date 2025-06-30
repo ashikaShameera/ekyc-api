@@ -69,8 +69,9 @@ export async function handleGetEkycUser (req, res) {
     /// go to BC_EKYC_USER_REQUEST and get ID_TYPE and ID_NUMBER
     // here need to pass the ID_TYPE,ID_NUMBER,ID_NUMBER,INSTITUTION
 
+    const orgExternal = await getExternalReferenceByInternal(meta.institution);
     // put user request with new column
-    const data = await getEkycUserData(meta.idType, meta.idNumber, meta.institution);
+    const data = await getEkycUserData(meta.idType, meta.idNumber, orgExternal.toLowerCase());
 
     
 
