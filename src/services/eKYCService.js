@@ -205,7 +205,7 @@ export async function createEkycDocument(req) {
     let token = await getAccessToken();
     console.log(req.body.username_employee)
     // 2) Create the form-data object
-    const form = new FormData();
+    let form = new FormData();
     form.append('id', req.body.id);                  // id (e.g., NIC number)
     form.append('id_type', req.body.id_type);        // id_type (e.g., NIC)
     form.append('username_employee', KYC_USERNAME); // employee username
