@@ -244,6 +244,24 @@ export async function createEkycDocument(req) {
 
     // 4) Make the POST request to the Bethel API with Authorization and form-data
     const boundary = form.getBoundary(); 
+
+    // DEBUG: inspect the outgoing request
+    console.log('\n=== AXIOS PAYLOAD ===');
+    console.log('URL:', 'https://kyc.bethel.network/api/v1/upload-update/documents');
+    console.log('Headers:', {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': `multipart/form-data; boundary=${boundary}`,
+    });
+    console.log('Form fields:');
+    for (const part of form._streams) {
+      if (typeof part === 'string' && part.includes('Content-Disposition')) {
+        console.log('  ' + part.trim());
+      } else if (Buffer.isBuffer(part)) {
+        console.log(`  [binary] <${part.length} bytes>`);
+      }
+    }
+    console.log('====================\n');
+
     const response = await axios.post(
       'https://kyc.bethel.network/api/v1/upload-update/documents',
       form,
