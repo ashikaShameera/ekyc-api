@@ -1,4 +1,3 @@
-import { getConnection } from '../config/db.js';
 import { getAccessToken, performLogin} from './kycAuthService.js';
 import axios from 'axios';
 import dotenv from 'dotenv';

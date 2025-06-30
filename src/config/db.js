@@ -43,4 +43,3 @@ export async function getConnection () {
     throw err; // rethrow so calling code can handle it too
   }
 }
-3
