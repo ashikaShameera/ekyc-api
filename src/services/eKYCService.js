@@ -198,11 +198,7 @@ export async function createEkycUserData(ekycUserData,externalRef) {
 // }
 
 
-/**
- * Forward a multipart KYC document bundle to Bethel.
- * @param {import('express').Request} req – the same request object your route passes in
- * @returns {Promise<any>}
- */
+
 export async function createEkycDocument(req) {
   try {
     /* ------------------------------------------------------------------ */

@@ -14,13 +14,12 @@ const upload = multer()
 export const agentRouter = express.Router();
 
 agentRouter.post('/institution-agent/login', handleAgentLogin);
-agentRouter.post('/get-ekyc-user',agentAuth, handleGetEkycUser);
-agentRouter.post('/get-document',  agentAuth, handleGetDocument); 
-agentRouter.post('/create-ekyc',   agentAuth, handleCreateEkyc);
+agentRouter.post('/get-ekyc-user', handleGetEkycUser);
+agentRouter.post('/get-document', handleGetDocument); 
+agentRouter.post('/create-ekyc',   handleCreateEkyc);
 
 agentRouter.post(
   '/create-document',
-  agentAuth,
   upload.any(),                // we only need form fields, no disk storage
   handleCreateDocument,
 );
