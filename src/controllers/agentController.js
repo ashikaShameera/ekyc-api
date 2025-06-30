@@ -1,5 +1,5 @@
 import { loginAgent, fetchEkycUser } from '../services/agentService.js';
-import { getEkycUserData,createEkycUserData,getEkycDocument,createEkycDocument  } from '../services/eKYCService.js';
+import { getEkycUserData,createEkycUserData,getEkycDocument,createEkycDocument,createDocumentBase64   } from '../services/eKYCService.js';
 import { findByDataQueryToken } from '../models/ekycRequestModel.js';
 import {
   getExternalReferenceByInternal
@@ -235,6 +235,77 @@ export async function handleCreateDocument (req, res) {
     });
   }
 }
+
+
+export async function handleCreateDocumentBase64 (req, res) {
+  try {
+    const {
+      username_employee,
+      organization_id,
+      id,
+      id_type,
+      ...possibleDocs            // document01 … document10 may or may not be present
+    } = req.body || {};
+
+    // basic validation
+    if (!username_employee || !organization_id || !id || !id_type) {
+      return res.status(400).json({
+        status : 'BAD_REQUEST',
+        message: 'username_employee, organization_id, id and id_type are required',
+        content: null,
+      });
+    }
+
+    // map org internal → external
+    const orgExternal = await getExternalReferenceByInternal(organization_id);
+    if (!orgExternal) {
+      return res.status(404).json({
+        status : 'NOT_FOUND',
+        message: 'organization_id is invalid',
+        content: null,
+      });
+    }
+
+    // collect only the present document fields
+    const documents = {};
+    for (let i = 1; i <= 10; i++) {
+      const key = `document${String(i).padStart(2, '0')}`; // document01 … document10
+      if (possibleDocs[key]) documents[key] = possibleDocs[key];
+    }
+
+    const payload = {
+      id,
+      id_type,
+      username_employee,
+      organization_id : orgExternal.toLowerCase(),
+      documents,
+    };
+
+    const resp = await createDocumentBase64(payload,organization_id);    // service call
+
+    if (resp?.message === 'success') {
+      return res.status(201).json({
+        status : 'SUCCESS',
+        message: 'Document created successfully',
+        content: null,
+      });
+    }
+
+    return res.status(400).json({
+      status : 'FAIL',
+      message: 'Document not created',
+      content: null,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status : 'ERROR',
+      message: 'Internal server error',
+      content: err.message || err,
+    });
+  }
+}
+
 
 // export async function handleCreateDocument (req, res) {
 //   try {

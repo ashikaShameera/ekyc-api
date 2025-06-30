@@ -5,7 +5,8 @@ import {
   handleGetEkycUser,
   handleCreateEkyc,
   handleGetDocument,
-  handleCreateDocument
+  handleCreateDocument,
+  handleCreateDocumentBase64
 } from '../controllers/agentController.js';
 
 import multer from 'multer';
@@ -23,3 +24,6 @@ agentRouter.post(
   upload.any(),                // we only need form fields, no disk storage
   handleCreateDocument,
 );
+
+
+agentRouter.post('/create-document-base64', handleCreateDocumentBase64); 
