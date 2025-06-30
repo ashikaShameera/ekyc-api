@@ -214,15 +214,28 @@ export async function createEkycDocument(req) {
     // 3) Attach files if any (assuming params.files is an object with file paths or buffers)
     if (req.files) {
       // Assuming params.files contains 'nicFront' (file)
-      for (const [fileKey, file] of Object.entries(req.files)) {
-        console.log("hiiiiiii")
-        console.log("==========================================================")
-        console.log(file)
-        // form.append(file.fieldname, file.buffer,file.originalname);
-                form.append(file);
-        // form.append(file);
-      }
+      // for (const [fileKey, file] of Object.entries(req.files)) {
+      //   console.log("hiiiiiii")
+      //   console.log("==========================================================")
+      //   console.log(file)
+      //   // form.append(file.fieldname, file.buffer,file.originalname);
+      //           form.append(file);
+      //   // form.append(file);
+      // }
+
+        for (const file of Object.values(req.files)) {
+          form.append(
+            file.fieldname,          // e.g. "document8"
+            file.buffer,             // or fs.createReadStream(file.path)
+            {
+              filename: file.originalname,
+              contentType: file.mimetype,
+            }
+          );
+        }
     }
+
+
     console.log("=============================== Form Object ============================================")
     console.log(form)
 
