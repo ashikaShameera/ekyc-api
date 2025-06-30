@@ -197,100 +197,96 @@ export async function createEkycUserData(ekycUserData,externalRef) {
 //   console.log("ekyc documents",req.body)
 // }
 
-// Map the incoming field names to the ones Bethel’s API expects
-const fieldNameMapping = {
-  nicFront: 'document01',
-  nicBack: 'document02',
-  // document03-document15 keep their original names
-};
+
+// service/ekyc.service.js (or wherever your service lives)
+const axios     = require('axios');
+const FormData  = require('form-data');
+const fs        = require('fs');
 
 /**
- * Builds a multipart-form request and sends it to the Bethel KYC API.
- * @param {import('express').Request} req – the Express request coming from your controller/route
- * @returns {Promise<object>} – Bethel API response body
+ * Forward a multipart KYC document bundle to Bethel.
+ * @param {import('express').Request} req – the same request object your route passes in
+ * @returns {Promise<any>}
  */
 export async function createEkycDocument(req) {
   try {
-    /* ------------------------------------------------------------------ *
-     * 1) Authorisation
-     * ------------------------------------------------------------------ */
-    const token = await getAccessToken();
+    /* ------------------------------------------------------------------ */
+    /* 1. Authorisation token                                             */
+    /* ------------------------------------------------------------------ */
+    const token = await getAccessToken();   // assume this util already exists
 
-    /* ------------------------------------------------------------------ *
-     * 2) Build the multipart body
-     * ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------ */
+    /* 2. Build multipart/form-data payload                               */
+    /* ------------------------------------------------------------------ */
     const form = new FormData();
 
-    // Text fields – copy everything over exactly as received
-    Object.entries(req.body || {}).forEach(([key, value]) => {
+    /* ---- mandatory / fixed fields ------------------------------------ */
+    form.append('username_employee', KYC_USERNAME);   // keep constant value
+
+    /* If you prefer explicit text fields, keep them here */
+    if (req.body.id)             form.append('id', req.body.id);
+    if (req.body.id_type)        form.append('id_type', req.body.id_type);
+    if (req.body.organization_id) form.append('organization_id', req.body.organization_id);
+
+    /* ---- all other body fields as-is --------------------------------- */
+    for (const [key, value] of Object.entries(req.body)) {
+      if (['username_employee', 'id', 'id_type', 'organization_id'].includes(key)) continue;
       form.append(key, value);
-    });
+    }
 
-    // File fields – apply mapping when needed
+    /* ---- file parts --------------------------------------------------- */
     if (req.files) {
-      for (const [incomingFieldName, filesArray] of Object.entries(req.files)) {
-        if (!Array.isArray(filesArray) || filesArray.length === 0) continue;
+      // Support both upload.array() / .single() and upload.fields()
+      const files = Array.isArray(req.files)
+        ? req.files                                 // .single() or .array()
+        : Object.values(req.files).flat();          // .fields()
 
-        const file = filesArray[0];
-        const targetFieldName = fieldNameMapping[incomingFieldName] || incomingFieldName;
-
-        // Prefer disk stream (multer's diskStorage) but fall back to in-memory buffer
-        if (file.path) {
-          form.append(
-            targetFieldName,
-            fs.createReadStream(file.path),
-            { filename: file.originalname, contentType: file.mimetype, knownLength: file.size }
-          );
-        } else if (file.buffer) {
-          form.append(
-            targetFieldName,
-            file.buffer,
-            { filename: file.originalname, contentType: file.mimetype }
-          );
-        }
+      for (const file of files) {
+        // Use the exact field name we received (document01, nicFront, etc.)
+        form.append(
+          file.fieldname,
+          file.buffer ? file.buffer : fs.createReadStream(file.path),
+          {
+            filename:    file.originalname,
+            contentType: file.mimetype,
+            knownLength: file.size
+          }
+        );
       }
     }
 
-    /* ------------------------------------------------------------------ *
-     * 3) POST to Bethel
-     * ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------ */
+    /* 3. POST to Bethel KYC endpoint                                     */
+    /* ------------------------------------------------------------------ */
     const response = await axios.post(
       'https://kyc.bethel.network/api/v1/upload-update/documents',
       form,
       {
         headers: {
-          ...form.getHeaders(),
-          Authorization: `Bearer ${token}`,
+          ...form.getHeaders(),               // includes correct boundary
+          Authorization: `Bearer ${token}`
         },
         maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-        timeout: HTTP_TIMEOUT,
+        maxBodyLength:   Infinity,
+        timeout:         HTTP_TIMEOUT
       }
     );
 
-    /* ------------------------------------------------------------------ *
-     * 4) Clean up any temp files written to disk by multer
-     * ------------------------------------------------------------------ */
-    if (req.files) {
-      for (const filesArray of Object.values(req.files)) {
-        filesArray.forEach((file) => {
-          if (file.path) {
-            fs.unlink(file.path, (err) => {
-              if (err) console.error('Failed to remove temp file:', err);
-            });
-          }
-        });
-      }
+    /* ------------------------------------------------------------------ */
+    /* 4. (Optional) remove temp files created by multer diskStorage      */
+    /* ------------------------------------------------------------------ */
+    if (req.files && !Array.isArray(req.files)) {
+      Object.values(req.files).flat().forEach(f => {
+        if (f.path) fs.unlink(f.path, () => {});
+      });
     }
 
     return response.data;
   } catch (err) {
     console.error('Error in createEkycDocument:', err.response?.data || err.message);
-    // Let the caller decide how to handle the error
-    throw err.response?.data || err;
+    throw err;  // bubble up so caller can decide on response status
   }
 }
-
 
 
 
