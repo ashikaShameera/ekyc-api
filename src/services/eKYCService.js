@@ -218,7 +218,8 @@ export async function createEkycDocument(req) {
         console.log("hiiiiiii")
         console.log("==========================================================")
         console.log(file)
-        form.append(file.fieldname, file.buffer,file.originalname);
+        // form.append(file.fieldname, file.buffer,file.originalname);
+                form.append(file);
         // form.append(file);
       }
     }
