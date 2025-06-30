@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 
 import FormData from 'form-data';  // npm install form-data to handle form-data requests
 import fs from 'fs';
+import { buffer } from 'stream/consumers';
 
 
 const BASE_URL      = 'https://kyc.bethel.network/api/v1/';
@@ -224,6 +225,7 @@ export async function createEkycDocument(req) {
       // }
 
         for (const file of Object.values(req.files)) {
+            if (file?.buffer && length(file.buffer)>0){
           form.append(
             file.fieldname,          // e.g. "document8"
             file.buffer,             // or fs.createReadStream(file.path)
@@ -233,6 +235,7 @@ export async function createEkycDocument(req) {
             }
           );
         }
+      }
     }
 
 
@@ -240,13 +243,16 @@ export async function createEkycDocument(req) {
     console.log(form)
 
     // 4) Make the POST request to the Bethel API with Authorization and form-data
+    const boundary = form.getBoundary(); 
     const response = await axios.post(
       'https://kyc.bethel.network/api/v1/upload-update/documents',
       form,
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          ...form.getHeaders(), // Automatically sets the correct 'Content-Type' for form-data
+          // ...form.getHeaders(), // Automatically sets the correct 'Content-Type' for form-data
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,  // ← manual
+
         },
         timeout: HTTP_TIMEOUT,  // Use the HTTP_TIMEOUT set in the environment file
       }
