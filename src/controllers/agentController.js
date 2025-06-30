@@ -174,6 +174,10 @@ export async function handleCreateEkyc(req, res) {
 
 
 export async function handleCreateDocument (req, res) {
+  console.log("===========================================================================")
+  console.log("Handle Created Document called")
+  console.log("getting request is ",req)
+  console.log("===========================================================================")
   try {
     /* ---------- validate required text fields ---------- */
     const { username_employee, organization_id } = req.body;

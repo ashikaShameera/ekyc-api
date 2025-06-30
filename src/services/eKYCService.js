@@ -221,6 +221,7 @@ export async function createEkycDocument(req) {
         // form.append(file);
       }
     }
+    console.log("=============================== Form Object ============================================")
     console.log(form)
 
     // 4) Make the POST request to the Bethel API with Authorization and form-data
