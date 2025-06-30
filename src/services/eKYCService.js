@@ -198,11 +198,6 @@ export async function createEkycUserData(ekycUserData,externalRef) {
 // }
 
 
-// service/ekyc.service.js (or wherever your service lives)
-const axios     = require('axios');
-const FormData  = require('form-data');
-const fs        = require('fs');
-
 /**
  * Forward a multipart KYC document bundle to Bethel.
  * @param {import('express').Request} req – the same request object your route passes in
