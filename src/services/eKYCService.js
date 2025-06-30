@@ -225,7 +225,7 @@ export async function createEkycDocument(req) {
       // }
 
         for (const file of Object.values(req.files)) {
-            if (file?.buffer && length(file.buffer)>0){
+            if (file?.buffer ){
           form.append(
             file.fieldname,          // e.g. "document8"
             file.buffer,             // or fs.createReadStream(file.path)
