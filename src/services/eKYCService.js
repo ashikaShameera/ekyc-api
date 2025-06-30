@@ -198,69 +198,177 @@ export async function createEkycUserData(ekycUserData,externalRef) {
 // }
 
 
-export async function createEkycDocument(req) {
-  // console.log(req.files)
-  console.log(req.body.id_type)
-  try {
-    // 1) Get the token for authorization header
-    let token = await getAccessToken();
-    console.log(req.body.username_employee)
-    // 2) Create the form-data object
-    let form = new FormData();
-    form.append('id', req.body.id);                  // id (e.g., NIC number)
-    form.append('id_type', req.body.id_type);        // id_type (e.g., NIC)
-    form.append('username_employee', KYC_USERNAME); // employee username
-    form.append('organization_id', req.body.organization_id);     // external organization id
+// export async function createEkycDocument(req) {
+//   // console.log(req.files)
+//   console.log(req.body.id_type)
+//   try {
+//     // 1) Get the token for authorization header
+//     let token = await getAccessToken();
+//     console.log(req.body.username_employee)
+//     // 2) Create the form-data object
+//     let form = new FormData();
+//     form.append('id', req.body.id);                  // id (e.g., NIC number)
+//     form.append('id_type', req.body.id_type);        // id_type (e.g., NIC)
+//     form.append('username_employee', KYC_USERNAME); // employee username
+//     form.append('organization_id', req.body.organization_id);     // external organization id
     
-    // 3) Attach files if any (assuming params.files is an object with file paths or buffers)
-    if (req.files) {
-      // Assuming params.files contains 'nicFront' (file)
-      // for (const [fileKey, file] of Object.entries(req.files)) {
-      //   console.log("hiiiiiii")
-      //   console.log("==========================================================")
-      //   console.log(file)
-      //   // form.append(file.fieldname, file.buffer,file.originalname);
-      //           form.append(file);
-      //   // form.append(file);
-      // }
+//     // 3) Attach files if any (assuming params.files is an object with file paths or buffers)
+//     if (req.files) {
+//       // Assuming params.files contains 'nicFront' (file)
+//       // for (const [fileKey, file] of Object.entries(req.files)) {
+//       //   console.log("hiiiiiii")
+//       //   console.log("==========================================================")
+//       //   console.log(file)
+//       //   // form.append(file.fieldname, file.buffer,file.originalname);
+//       //           form.append(file);
+//       //   // form.append(file);
+//       // }
 
-        for (const file of Object.values(req.files)) {
-            if (file?.buffer ){
-          form.append(
-            file.fieldname,          // e.g. "document8"
-            file.buffer,             // or fs.createReadStream(file.path)
-            {
-              filename: file.originalname,
-              contentType: file.mimetype,
-            }
-          );
+//         for (const file of Object.values(req.files)) {
+//             if (file?.buffer ){
+//           form.append(
+//             file.fieldname,          // e.g. "document8"
+//             file.buffer,             // or fs.createReadStream(file.path)
+//             {
+//               filename: file.originalname,
+//               contentType: file.mimetype,
+//             }
+//           );
+//         }
+//       }
+//     }
+
+
+//     console.log("=============================== Form Object ============================================")
+//     console.log(form)
+
+//     // 4) Make the POST request to the Bethel API with Authorization and form-data
+//     const boundary = form.getBoundary(); 
+
+//     // DEBUG: inspect the outgoing request
+//     console.log('\n=== AXIOS PAYLOAD ===');
+//     console.log('URL:', 'https://kyc.bethel.network/api/v1/upload-update/documents');
+//     console.log('Headers:', {
+//       Authorization: `Bearer ${token}`,
+//       'Content-Type': `multipart/form-data; boundary=${boundary}`,
+//     });
+//     console.log('Form fields:');
+//     for (const part of form._streams) {
+//       if (typeof part === 'string' && part.includes('Content-Disposition')) {
+//         console.log('  ' + part.trim());
+//       } else if (Buffer.isBuffer(part)) {
+//         console.log(`  [binary] <${part.length} bytes>`);
+//       }
+//     }
+//     console.log('====================\n');
+
+//     const response = await axios.post(
+//       'https://kyc.bethel.network/api/v1/upload-update/documents',
+//       form,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           // ...form.getHeaders(), // Automatically sets the correct 'Content-Type' for form-data
+//           'Content-Type': `multipart/form-data; boundary=${boundary}`,  // ← manual
+
+//         },
+//         timeout: HTTP_TIMEOUT,  // Use the HTTP_TIMEOUT set in the environment file
+//       }
+//     );
+
+//     // 5) Return response from API (success or failure message)
+//     console.log("respone is",response.data);  // Check the response if needed
+//     return response.data;        // Return data (you may modify how to handle this)
+//   } catch (err) {
+//     console.error('Error in createEkycDocument:', err.response?.data || err.message);
+//     return null; // Or you can return an error message as needed
+//   }
+// }
+
+
+
+
+export async function createEkycDocument(req) {
+  try {
+    /* ------------------------------------------------------------------ *
+     * 1)  Authorisation token
+     * ------------------------------------------------------------------ */
+    const token = await getAccessToken();
+
+    /* ------------------------------------------------------------------ *
+     * 2)  Build multipart/form-data
+     * ------------------------------------------------------------------ */
+    const form = new FormData();
+
+    // basic scalar fields
+    form.append('id',               req.body.id);
+    form.append('id_type',          req.body.id_type);
+    form.append('username_employee', KYC_USERNAME);
+    form.append('organization_id',  req.body.organization_id);
+
+    /* ------------------------------------------------------------------ *
+     * 2-a) Files uploaded through multipart/form-data (req.files)
+     * ------------------------------------------------------------------ */
+    if (req.files && Object.keys(req.files).length) {
+      for (const file of Object.values(req.files)) {
+        if (file?.buffer) {
+          form.append(file.fieldname, file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+          });
         }
       }
     }
 
+    /* ------------------------------------------------------------------ *
+     * 2-b) Documents sent in the body as base-64 strings
+     *      Expected shape (flexible, adjust to your front end):
+     *        req.body.base64Docs = [
+     *          {
+     *            fieldname : 'nicFront',
+     *            data      : 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD…',
+     *            filename  : 'nic_front.jpg',          // optional
+     *            mimetype  : 'image/jpeg'              // optional
+     *          },
+     *          …
+     *        ]
+     * ------------------------------------------------------------------ */
+    if (req.body.base64Docs) {
+      const docs = Array.isArray(req.body.base64Docs)
+        ? req.body.base64Docs
+        : JSON.parse(req.body.base64Docs);      // tolerate JSON-encoded string
 
-    console.log("=============================== Form Object ============================================")
-    console.log(form)
+      docs.forEach((doc, idx) => {
+        if (!doc?.data) return;                 // skip invalid entries
 
-    // 4) Make the POST request to the Bethel API with Authorization and form-data
-    const boundary = form.getBoundary(); 
+        // strip possible data-URI header
+        const [, base64Payload] = doc.data.split(',').length === 2
+          ? doc.data.split(',')
+          : [null, doc.data];
 
-    // DEBUG: inspect the outgoing request
-    console.log('\n=== AXIOS PAYLOAD ===');
-    console.log('URL:', 'https://kyc.bethel.network/api/v1/upload-update/documents');
-    console.log('Headers:', {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': `multipart/form-data; boundary=${boundary}`,
-    });
-    console.log('Form fields:');
-    for (const part of form._streams) {
-      if (typeof part === 'string' && part.includes('Content-Disposition')) {
-        console.log('  ' + part.trim());
-      } else if (Buffer.isBuffer(part)) {
-        console.log(`  [binary] <${part.length} bytes>`);
-      }
+        const buffer = Buffer.from(base64Payload, 'base64');
+
+        form.append(doc.fieldname || `file${idx + 1}`, buffer, {
+          filename   : doc.filename  || `document${idx + 1}`,
+          contentType: doc.mimetype  || 'application/octet-stream',
+        });
+      });
     }
-    console.log('====================\n');
+
+    /* ------------------------------------------------------------------ *
+     * 3)  POST to Bethel
+     * ------------------------------------------------------------------ */
+    const boundary = form.getBoundary();   // only for the debug/explicit header
+
+    // Debug helper (remove in production)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('\n=== Bethel KYC upload payload ===');
+      console.log('Headers:', { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/form-data; boundary=${boundary}` });
+      console.log('Scalar fields:', ['id', 'id_type', 'username_employee', 'organization_id']
+        .map(k => `${k}=${req.body[k]}`)
+        .join(' | '));
+      console.log('-----------------------------------------------------------\n');
+    }
 
     const response = await axios.post(
       'https://kyc.bethel.network/api/v1/upload-update/documents',
@@ -268,22 +376,21 @@ export async function createEkycDocument(req) {
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          // ...form.getHeaders(), // Automatically sets the correct 'Content-Type' for form-data
-          'Content-Type': `multipart/form-data; boundary=${boundary}`,  // ← manual
-
+          // form.getHeaders() would add the correct Content-Type automatically,
+          // but you can keep the explicit boundary if you prefer the debug print-out:
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
         },
-        timeout: HTTP_TIMEOUT,  // Use the HTTP_TIMEOUT set in the environment file
-      }
+        timeout: HTTP_TIMEOUT,
+      },
     );
 
-    // 5) Return response from API (success or failure message)
-    console.log("respone is",response.data);  // Check the response if needed
-    return response.data;        // Return data (you may modify how to handle this)
+    return response.data;        // success
   } catch (err) {
     console.error('Error in createEkycDocument:', err.response?.data || err.message);
-    return null; // Or you can return an error message as needed
+    return null;                 // or throw, depending on your error strategy
   }
 }
+
 
 // https://kyc.bethel.network/api/v1/ekyc/documents/{{id}}/{{id_type}}/{{username}}/{{cid}}
 // https://kyc.bethel.network/api/v1/ekyc/documents/{id}/{id_type}/{username}/{cid}
