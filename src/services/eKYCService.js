@@ -285,11 +285,73 @@ export async function createEkycDocument(req) {
   }
 }
 
-export async function createDocumentBase64(params,organization_id) {
-  console.log(organization_id)
-  console.log("==========params===========")
-  console.log(params)
+// export async function createDocumentBase64(params,organization_id) {
+//   console.log(organization_id)
+//   console.log("==========params===========")
+//   console.log(params)
+// }
+
+
+/**
+ * params = {
+ *   id, id_type, username_employee, organization_id,
+ *   documents: { document03:'<base64>', document10:'<base64>', … }
+ * }
+ */
+export async function createDocumentBase64 (params) {
+  // helper --------------------------------------------------------------
+  async function postForm (token) {
+    const form = new FormData();
+
+    // text fields
+    form.append('id',                 params.id);
+    form.append('id_type',            params.id_type);
+    form.append('username_employee',  params.username_employee);
+    form.append('organization_id',    params.organization_id);
+
+    // file-type fields (0‒10 may be present)
+    if (params.documents && typeof params.documents === 'object') {
+      Object.entries(params.documents).forEach(([key, b64]) => {
+        if (!/^document\d{2}$/.test(key) || !b64) return;   // skip unknown keys
+        const buf = Buffer.from(b64, 'base64');
+        form.append(key, buf, { filename: `${key}.bin` });  // generic filename
+      });
+    }
+
+    const { data, status } = await axios.post(
+      'https://kyc.bethel.network/api/v1/upload-update/documents',
+      form,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...form.getHeaders(),
+        },
+        timeout: HTTP_TIMEOUT,
+      },
+    );
+
+    return { data, status };
+  }
+
+  // ---------- first attempt with cached token ----------
+  let token = await getAccessToken();
+  try {
+    return await postForm(token);                       // success → done
+  } catch (err) {
+    if (!isTokenError(err)) throw err;                  // real failure
+  }
+
+  // ---------- token expired → hard refresh & retry once ----------
+  try {
+    const fresh = await performLogin();
+    token = fresh.access_token;
+    return await postForm(token);
+  } catch (err) {
+    console.error('createDocumentBase64 error:', err.response?.data || err.message);
+    return null;
+  }
 }
+
 
 
 // export async function createEkycDocument(req) {
